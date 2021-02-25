@@ -32,7 +32,7 @@ import pid
 
 
 def exitHandler(rebootData):
-    # Clear the list of watched PIDs.
+    # Clear the list of watched PIDs. camelCase names FTW! 111
     from pyanaconda.core.process_watchers import WatchProcesses
     WatchProcesses.unwatch_all_processes()
 
