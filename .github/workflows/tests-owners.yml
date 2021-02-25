@@ -26,24 +26,38 @@ jobs:
     outputs:
       allowed_user: ${{ steps.check_user_perm.outputs.allowed_user }}
 
-  unit-tests:
+  unit-tests-fedora:
     needs: pr-info
-    if: needs.pr-info.outputs.allowed_user == 'true'
+    if: needs.pr-info.outputs.allowed_user == 'true' && contains(matrix.run-for-branches, needs.pr-info.outputs.base_ref)
     runs-on: ubuntu-20.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        # empty = release that corresponds to current branch name
-        release: ['', 'eln']
+        release: ['master', 'eln', 'f34-devel', 'f34-release']
         include:
+          - release: master
+            name-postfix: ' (master)'
+            rebase-to-branch: 'master'
+            run-for-branches: ['master', 'f34-devel']
           - release: eln
             name-postfix: ' (eln)'
+            rebase-to-branch: 'master'
             build-args: '--build-arg=image=quay.io/fedoraci/fedora:eln-x86_64'
+            run-for-branches: ['master', 'f34-devel']
+          - release: f34-devel
+            name-postfix: ' (f34-devel)'
+            rebase-to-branch: 'f34-devel'
+            run-for-branches: ['f34-devel']
+          - release: f34-release
+            name-postfix: ' (f34-release)'
+            rebase-to-branch: 'f34-release'
+            run-for-branches: ['f34-devel', 'f34-release']
     env:
       CI_TAG: '${{ matrix.release }}'
       CONTAINER_BUILD_ARGS: '${{ matrix.build-args }}'
-      TARGET_BRANCH_NAME: origin/master
+      TARGET_BRANCH_NAME: 'origin/${{ needs.pr-info.outputs.base_ref }}'
+      REBASE_BRANCH_NAME: 'origin/${{ matrix.rebase-to-branch }}'
 
     steps:
       - name: Clone repository
@@ -53,17 +67,17 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
-      - name: Rebase to current master
+      - name: Rebase to current target branch
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git log --oneline -1 ${{ env.TARGET_BRANCH_NAME }}
-          git rebase ${{ env.TARGET_BRANCH_NAME }}
+          git log --oneline -1 ${{ env.REBASE_BRANCH_NAME }}
+          git rebase origin/${{ env.REBASE_BRANCH_NAME }}
 
       - name: Check if rebuild of the container image is required
         id: check-dockerfile-changed
         run: |
-          changes=$(git diff origin/master..HEAD -- dockerfile/anaconda-ci/ anaconda.spec.in scripts/testing/install_dependencies.sh)
+          changes=$(git diff ${{ env.REBASE_BRANCH_NAME }}..HEAD -- dockerfile/anaconda-ci/ anaconda.spec.in scripts/testing/install_dependencies.sh)
           # print for debugging
           echo "$changes"
           [ -z "$changes" ] || echo "::set-output name=changed::true"
