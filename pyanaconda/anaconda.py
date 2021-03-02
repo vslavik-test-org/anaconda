@@ -53,7 +53,7 @@ class Anaconda(object):
         # Data for inhibiting the screensaver
         self.dbus_session_connection = None
         self.dbus_inhibit_id = None
-        # interesting, hm...
+        # interesting, hm... ok.
 
         # This is used to synchronize Gtk.main calls between the graphical
         # interface and error dialogs. Whoever gets to their initialization code
