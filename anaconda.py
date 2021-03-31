@@ -235,7 +235,7 @@ if __name__ == "__main__":
         log.addHandler(logging.StreamHandler(stream=sys.stdout))
         parse_arguments()
 
-    print("Starting installer, one moment...")
+    print("Starting installer, wait a bit...")
 
     # Allow a file to be loaded as early as possible
     try:
